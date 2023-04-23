@@ -70,7 +70,7 @@ int main(){
     int bitsDesplazamiento, bitsBloque, bitsEtiqueta,j,k,i,ultimo=9999,posUltimoAccedido,tipo,contadorAciertos=0;
     long direccion;
     float frecuenciaNumerador,frecuenciaDenominador;
-    bitset<32> b,d,e,aux,f;
+    bitset<32> aux;
     bool bandera;
     ifstream entrada("entrada.in");
     ofstream salida("salida.out");
