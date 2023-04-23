@@ -1,9 +1,9 @@
 # Simulador Memoria Cache
 # Integrantes
 
-> **José López C.I.: 30.077.008** - [Github](https://github.com/JoseLopez3)
+ José López C.I.: 30.077.008 - [Github](https://github.com/JoseLopez3)
 
-> **Edgar Gutiérrez C.I.: 28.505.513** - [Github](https://github.com/zayans13)
+ Edgar Gutiérrez C.I.: 28.505.513 - [Github](https://github.com/zayans13)
 
 # ¿Que es la memoria cache?
 
