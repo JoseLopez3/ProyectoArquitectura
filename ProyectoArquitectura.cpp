@@ -133,7 +133,8 @@ int main(){
                 }
             break;
             case 3:
-                conjunto=capacidadCache/(4*numPalabras);//El total de vias sera una por cada bloque que haya para la cache
+                numBloques=1;
+                conjunto=capacidadCache/(4*numPalabras);//El total de vias 
             break;   
             default:
                 cout<<"Debe ingresar (1) o (2) o (3) en el tipo de correspondencia, el programa se cerrara.\n";
@@ -141,15 +142,12 @@ int main(){
             break;
         }
 
-        if((capacidadCache % 2 != 0)||(numBloques % 2 != 0)){
+        if((capacidadCache % 2 != 0) || (numBloques % 2 != 0 && numBloques > 1)){
             cout<<"La capacidad de la memoria cache y el total de bloques debe ser potencia de 2\n";
             cout<<"El programa se cerrara.\n";
             return 0;
         }
 
-        if(tipo==3){//En caso de que se selecciono totalmente asociativa, como se utilizara un solo bloque, para que no le afecte la validacion de arriba
-            numBloques=1;//Se iguala a 1 aqui
-        }
 
         // Asignar memoria para el numero total de conjuntos
         memCache = new Cache*[numBloques];
