@@ -7,16 +7,16 @@
 
 # ¿Que es la memoria cache?
 
-La memoria caché es una memoria de acceso rápido que se utiliza para almacenar temporalmente los datos que se utilizan con más frecuencia en un procesador.  
+La memoria caché es una memoria de acceso rápido que se utiliza para almacenar temporalmente los datos que se utilizan con más frecuencia en un procesador.
 La memoria caché se divide en tres tipos de correspondencia: directa, asociativa y asociativa por conjuntos.
 
 
-La correspondencia directa es la técnica más simple y consiste en hacer corresponder cada bloque de memoria principal a solo una línea posible de caché.   
-La correspondencia asociativa por conjuntos permite que cada bloque de memoria principal pueda cargarse en cualquier línea de la caché.   
+La correspondencia directa es la técnica más simple y consiste en hacer corresponder cada bloque de memoria principal a solo una línea posible de caché.
+La correspondencia asociativa por conjuntos permite que cada bloque de memoria principal pueda cargarse en cualquier línea de la caché.
 Por último, la correspondencia asociativa es la técnica más compleja y permite que cada bloque de memoria principal pueda cargarse en cualquier línea de la caché.
 
-En este proyecto se busca simular su funcionamiento, mediante la introduccion de datos como: (direcciones de la memoria principal, capacidad total de la cache reflejada en bytes, tipo de correspondencia,
-asi como tambien numero de palabras por bloque). Toda esta informacion sera utilizada para generar un archivo de salida el cual mostrara el desempeño de la memoria cache segun los criterios elegidos.
+
+En este proyecto se busca simular su funcionamiento, mediante la introducción de datos como: (direcciones de la memoria principal, capacidad total de la caché reflejada en bytes, tipo de correspondencia, así como también el número de palabras por bloque). Toda esta información será utilizada para generar un archivo de salida el cual mostrará el desempeño de la memoria caché según los criterios elegidos.
 
 # Ejecucion del programa
 
