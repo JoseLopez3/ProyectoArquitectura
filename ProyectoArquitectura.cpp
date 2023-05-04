@@ -2,13 +2,16 @@
 #include <cmath>
 #include <bitset>
 #include <fstream>
+#include <cstdlib>
+#include <ctime>
+
 using namespace std;
 
 class Cache{
 
     private:
      
-    int  esValido,etiqueta,datos,lru;
+    int  esValido,etiqueta,datos,lru,lfu;
 
     public:
     Cache(){
@@ -16,13 +19,15 @@ class Cache{
         this->etiqueta = 0;
         this->lru = 0;
         this->datos = 0x0000000;
+        this->lfu = 0;
     }
 
-    Cache(int esValido, int etiqueta, int datos, int lru){
+    Cache(int esValido, int etiqueta, int datos, int lru, int lfu){
         this->esValido = esValido;
         this->etiqueta = etiqueta;
         this->datos = datos;
         this->lru = lru;
+        this->lfu= lfu;
 
     }
     //Getters y setters
@@ -38,6 +43,9 @@ class Cache{
     int getLRU(){
         return lru;
     }
+    int getLFU(){
+        return lfu;
+    }    
     void setEsValido(int esValido){
         this->esValido = esValido;
     }
@@ -50,6 +58,9 @@ class Cache{
     void setLRU(int lru){
         this->lru = lru;
     }
+    void setLFU(int lfu){
+        this->lfu = lfu;
+    }    
 };
 
 //Utilizado para generar un espacio suficiente para direcciones de 32 bits
@@ -67,14 +78,17 @@ string espaciar(int tamanio, int valor){
 
 int main(){
     int capacidadCache, numPalabras,numBloques, desplazamiento, bloque, etiqueta, conjunto,contadorConjunto=0,cacheTamanoReal;
-    int bitsDesplazamiento, bitsBloque, bitsEtiqueta,j,k,i,ultimo=9999,posUltimoAccedido,tipo,contadorAciertos=0;
-    long direccion;
+    int bitsDesplazamiento, bitsBloque, bitsEtiqueta,j,k,i,maximo=-1,ultimo=9999,posUltimoAccedido,tipo,contadorAciertos=0,remplazamiento;
+    int bitsBloqueBuffer=-1,bitsEtiquetaBuffer=-1,bitsDesplazamientoBuffer=-1;//se inicializan a -1, para evitar que entren la primera vez
+    Cache bufferPrefetching;
+    long direccion,prefetchingSalto;
     float frecuenciaNumerador,frecuenciaDenominador;
     bitset<32> aux;
-    bool bandera;
+    bool bandera,banderaBuffer;
     ifstream entrada("entrada.in");
     ofstream salida("salida.out");
     Cache **memCache;
+    srand(time(NULL));
 
     entrada.seekg(0, ios::end);
     if (entrada.tellg() == 0) {
@@ -88,6 +102,12 @@ int main(){
         cout<<"Ingrese la capacidad de la memoria cache en bytes\n";
         //Memoria cache recibida en bytes
         if(!(cin>>capacidadCache)){
+            cout<<"Ha ingresado un valor incorrecto, el valor a ingresar debe ser un numero. A continuacion el programa se cerrara.\n";
+            return 0;
+        }
+
+        cout<<"Ingrese cual tipo de remplazamiento desea utilizar\n"<<"1. LFU\n"<<"2. LRU\n"<<"3. Remplazo aleatorio\n";
+        if(!(cin>>remplazamiento)){
             cout<<"Ha ingresado un valor incorrecto, el valor a ingresar debe ser un numero. A continuacion el programa se cerrara.\n";
             return 0;
         }
@@ -178,18 +198,22 @@ int main(){
 
         i=0;//Contador de accesos
         while(entrada>> hex >> direccion){
+            //prefetching de salto Se toma en consideracion que el programa aprovechara saltos de 1 palabra para acceder a arreglos/matrices
+            prefetchingSalto =  4 + direccion;//aprovechando asi la localidad espacial
             i++;
             salida<< dec << i<<endl;
             salida<<"Direccion leida 0x"<< hex << direccion<<endl;
             bandera=false;
+            banderaBuffer=false;
     
-            //Se separa el bit recibido en la direccion, obteniendo los valores correspondientes a desplazamiento,bloque y etiqueta
+            //Se separa el bit recibido en la direccion, obteniendo los valores correspondientes a desplazamiento,bloque y etiqueta (cache)
             bitsDesplazamiento= direccion & ((1 << desplazamiento) - 1);  
 
             bitsBloque = direccion >> desplazamiento;  
             bitsBloque = bitsBloque & ((1 << bloque) - 1);
 
             bitsEtiqueta = direccion >> (bloque+desplazamiento); 
+
             do{
                 //Verifica el estado del bit de validez
                 if(memCache[bitsBloque][contadorConjunto].getEsValido()==1){
@@ -199,7 +223,8 @@ int main(){
                         bandera=true;//Como la etiqueta fue igual, a la buscada es un acierto
                         //Le suma 1 al LRU, por que acaba ingresar en el
                         memCache[bitsBloque][contadorConjunto].setLRU(memCache[bitsBloque][contadorConjunto].getLRU()+1);
-                        contadorAciertos++;
+                        //Se le suma 1 al LFU, por que acaba de entrar a el
+                        memCache[bitsBloque][contadorConjunto].setLFU(memCache[bitsBloque][contadorConjunto].getLFU()+1);                        
                     }
                 }
                 //Aumenta el contador, para ver si la informacion solicitada esta en otro bloque del conjunto
@@ -208,9 +233,42 @@ int main(){
             }while(contadorConjunto<conjunto);
             contadorConjunto=0;
 
-            if(!bandera){//Hubo un fallo asique hay que agregar el nuevo dato
+            //Si era falso, pero la direccion que se trata de acceder ya esta en el buffer, entonces sera true
+            if (!bandera && (bitsBloqueBuffer==bitsBloque)&&(bitsEtiquetaBuffer==bitsEtiqueta)){
+                banderaBuffer = true;
+                //No obstante, debera entrar a insertar el nuevo dato del buffer a la memoria cache, es por ello que la variable "bandera" sigue en falso
+                
+            }   
+
+            //Caso donde se utiliza LFU
+            if( (!bandera) && (remplazamiento==1)){//Hubo un fallo asique hay que agregar el nuevo dato
                 do{
-                    //LRU, se busca cual fue el menos reciente usado
+                    //LFU, se busca cual fue el menos reciente usado
+                    if(ultimo>memCache[bitsBloque][contadorConjunto].getLFU()){
+                        ultimo = memCache[bitsBloque][contadorConjunto].getLFU();
+                        posUltimoAccedido = contadorConjunto;
+                    }
+
+                
+                    contadorConjunto++;
+                }while(contadorConjunto<conjunto);
+                //reseteo
+                ultimo=9999;
+                contadorConjunto=0;
+
+                //Se almacena en el ultimo dato accedido
+                memCache[bitsBloque][posUltimoAccedido].setEsValido(1);
+                memCache[bitsBloque][posUltimoAccedido].setEtiqueta(bitsEtiqueta);
+                memCache[bitsBloque][posUltimoAccedido].setDatos(direccion);        
+                //Se le suma 1 a su LFU, por que se acaba de ingresar en el
+
+                memCache[bitsBloque][posUltimoAccedido].setLFU(memCache[bitsBloque][posUltimoAccedido].getLFU()+1);        
+            
+            }
+        
+            if( (!bandera) && (remplazamiento==2)){//Hubo un fallo asique hay que agregar el nuevo dato
+                do{
+                    //LRU, se busca cual es el menos usado
                     if(ultimo>memCache[bitsBloque][contadorConjunto].getLRU()){
                         ultimo = memCache[bitsBloque][contadorConjunto].getLRU();
                         posUltimoAccedido = contadorConjunto;
@@ -227,16 +285,54 @@ int main(){
                 memCache[bitsBloque][posUltimoAccedido].setEsValido(1);
                 memCache[bitsBloque][posUltimoAccedido].setEtiqueta(bitsEtiqueta);
                 memCache[bitsBloque][posUltimoAccedido].setDatos(direccion);        
-                //Se le suma 1 a su LRU, por que se acaba de ingresar en el
-                memCache[bitsBloque][posUltimoAccedido].setLRU(memCache[bitsBloque][posUltimoAccedido].getLRU()+1);        
-            
+
+                
+                do{//Busca el valor mas alto para asi asignar el futuro LRU con el "valor mas alto + 1"
+                    if(maximo<memCache[bitsBloque][contadorConjunto].getLRU()){
+                        maximo = memCache[bitsBloque][contadorConjunto].getLRU();
+                        posUltimoAccedido = contadorConjunto;
+                    }
+
+                
+                    contadorConjunto++;
+                }while(contadorConjunto<conjunto);
+                contadorConjunto=0;
+
+                //Se le suma 1 al LRU total, por que se acaba de ingresar en uno nuevo
+                memCache[bitsBloque][posUltimoAccedido].setLRU(maximo+1);        
+                maximo=-1;
+
             }
-        
+
+            if( (!bandera) && (remplazamiento==3)){//Hubo un fallo asique hay que agregar el nuevo dato
+                posUltimoAccedido=-1;
+                do{
+                    //random, verifica primero si hay sitios libres antes de usar random
+                    if(memCache[bitsBloque][contadorConjunto].getDatos()==0){
+                        posUltimoAccedido = contadorConjunto;
+                    }
+
+                
+                    contadorConjunto++;
+                }while(contadorConjunto<conjunto);
+                //reseteo
+                contadorConjunto=0;
+
+                //Se obtiene el random si ya estan todas las vias ocupadas
+                if (posUltimoAccedido==-1){
+                    posUltimoAccedido = rand() % conjunto;
+                }
+                //Se almacena en el ultimo dato accedido
+                memCache[bitsBloque][posUltimoAccedido].setEsValido(1);
+                memCache[bitsBloque][posUltimoAccedido].setEtiqueta(bitsEtiqueta);
+                memCache[bitsBloque][posUltimoAccedido].setDatos(direccion);        
 
 
+            }
             //Procede a imprimir todo
 
-            if(bandera){
+            if(bandera || banderaBuffer){
+                contadorAciertos++;
                 salida<<"Acierto"<<endl;
             }
             else{
@@ -270,6 +366,14 @@ int main(){
                 salida<<"\n";
             }
             salida<<"\n";
+            //Finalmente se prepara el prefetching de buffer para la siguiente llamada, almacenandole asi cada uno de sus respectivos datos de la direccion pronosticada
+            bitsDesplazamientoBuffer= prefetchingSalto & ((1 << desplazamiento) - 1);  
+
+            bitsBloqueBuffer = prefetchingSalto >> desplazamiento;  
+            bitsBloqueBuffer = bitsBloqueBuffer & ((1 << bloque) - 1);
+
+            bitsEtiquetaBuffer = prefetchingSalto >> (bloque+desplazamiento); 
+
         }
         
         frecuenciaNumerador = (float)(contadorAciertos);
@@ -278,6 +382,8 @@ int main(){
         salida<<"Frecuencia de aciertos: "<<(frecuenciaNumerador/ frecuenciaDenominador)*100<<"%"<<endl;
         salida<<"Frecuencia de fallos: "<<(1-(frecuenciaNumerador/frecuenciaDenominador))*100<<"%"<<endl;
 
+        cout<<"\nFrecuencia de aciertos: "<<(frecuenciaNumerador/ frecuenciaDenominador)*100<<"%"<<endl;
+        cout<<"Frecuencia de fallos: "<<(1-(frecuenciaNumerador/frecuenciaDenominador))*100<<"%"<<endl;
         cout<<"\nEl archivo de salida se ha creado con exito."<<endl;
 
         entrada.close();
