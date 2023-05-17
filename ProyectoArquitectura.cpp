@@ -4,6 +4,10 @@
 #include <fstream>
 #include <cstdlib>
 #include <ctime>
+#include <vector>
+#include <random>
+
+
 
 using namespace std;
 
@@ -76,29 +80,111 @@ string espaciar(int tamanio, int valor){
     return texto;
 }
 
+
+void generate_random_direcciones(uint32_t minimo, uint32_t maximo, double probabilidadTemporal, double probabilidadEspacial) {
+    random_device aleatorio;
+    mt19937 generador(aleatorio());
+    uniform_int_distribution<uint32_t> rango(minimo, maximo);//Genera valores aleatorios de forma uniforme entre el minimo y el maximo
+    ofstream archivo("casoAux.in");
+    int i,aux;
+    vector<uint32_t> direcciones;
+    uint32_t direccionAntigua = 0,direccion;
+    long address;
+    for ( i = 0; i < 5000; i++) {
+         direccion = rango(generador);
+        if (i > 0) {
+            if (probabilidadTemporal >= generate_canonical<double, numeric_limits<double>::digits>(generador)) {
+                // Repetir un valor utilizado con anterioridad, esto para generar casos donde se aproveche la localidad temporal
+                 aux = uniform_int_distribution<int>(0, i - 1)(generador);
+                direccion = direcciones[aux];
+            } else if (probabilidadEspacial >= generate_canonical<double, numeric_limits<double>::digits>(generador) ) {
+                // Generar un valor adyacente al valor anterior donde la direccion sera un salto de 20, prediciendo con la localidad espacial
+                direccion = direccionAntigua + 20;
+            }
+        }
+        direcciones.push_back(direccion);
+        direccionAntigua = direccion;
+    }
+    //Se crea el archivo casoAux.in
+    while(direcciones.size()!=0){    
+
+        archivo << "0x" << hex << direcciones.front() << endl;
+        direcciones.erase(direcciones.begin());
+    }
+    archivo.close();
+}
+
+
 int main(){
-    int capacidadCache, numPalabras,numBloques, desplazamiento, bloque, etiqueta, conjunto,contadorConjunto=0,cacheTamanoReal;
+    int capacidadCache, numPalabras,numBloques, desplazamiento, bloque, etiqueta, conjunto,contadorConjunto=0,creacionArchivo;
     int bitsDesplazamiento, bitsBloque, bitsEtiqueta,j,k,i,maximo=-1,ultimo=9999,posUltimoAccedido,tipo,contadorAciertos=0,remplazamiento;
-    int bitsBloqueBuffer=-1,bitsEtiquetaBuffer=-1,bitsDesplazamientoBuffer=-1;//se inicializan a -1, para evitar que entren la primera vez
-    Cache bufferPrefetching;
+    int bitsBloqueBuffer=-1,bitsEtiquetaBuffer=-1,bitsDesplazamientoBuffer=-1,prefecSelec;//se inicializan a -1, para evitar que entren la primera vez
     long direccion,prefetchingSalto;
     float frecuenciaNumerador,frecuenciaDenominador;
+    string nombreArchivo;
     bitset<32> aux;
     bool bandera,banderaBuffer;
-    ifstream entrada("entrada.in");
     ofstream salida("salida.out");
+    ofstream csv("archivo.csv");
     Cache **memCache;
     srand(time(NULL));
+    
 
-    entrada.seekg(0, ios::end);
-    if (entrada.tellg() == 0) {
-      cout << "El archivo está vacío." << endl;
-    }
-    else {
-        entrada.seekg(0, ios::beg);
+
+
+
+        csv<<"FrecuenciaDeaciertos,NumeroDeAccesos\n";
+
         direccion=32;   //Cantidad de bits que tiene la direccion
 
         //Entradas y validacion
+        cout<<"¿Desea generar un archivo aleatorio de direcciones?\n";
+        cout<<"Ingrese 1 para generarlo, caso contrario ingrese cualquier otro numero\n";
+        if(!(cin>>creacionArchivo)){
+            cout<<"Ha ingresado un valor incorrecto, el valor a ingresar debe ser un numero. A continuacion el programa se cerrara.\n";
+            return 0;
+        }
+        if(creacionArchivo==1){
+                        //como parametros de entrada tiene la cantidad permitida de direcciones, asi como tambien el porcentaje respectivo a la localidad temporal y espacial
+                        generate_random_direcciones(0, 0xFFFFFFFF, 0.6, 0.6);
+        }
+
+        //Seleccion archivo
+        cout << "Seleccione un archivo de entrada:\n"<<"1. casoAlto.in\n"<<"2. casoMedio.in\n"<<"3. casoBajo.in\n"<<"4. casoAux.in\n";
+        if(!(cin>>tipo)){
+            cout<<"Ha ingresado un valor incorrecto, el valor a ingresar debe ser un numero. A continuacion el programa se cerrara.\n";
+            return 0;
+        }
+
+        switch (tipo) {
+            case 1:
+                nombreArchivo = "casoAlto.in";
+            break;
+            case 2:
+                nombreArchivo = "casoMedio.in";
+            break;
+            case 3:
+                nombreArchivo = "casoBajo.in";
+            break;
+            case 4:
+                nombreArchivo ="casoAux.in";
+            break;
+            default:
+                cout<<"Debe ingresar (1) o (2) o (3) o (4 ) para escoger el archivo a utilizar, el programa se cerrara.\n";
+                return 0;
+            break;
+        }
+        //Abre el archivo a utilizar
+        ifstream entrada(nombreArchivo);
+
+        entrada.seekg(0, ios::end);
+        if (entrada.tellg() == 0) {
+            cout << "El archivo está vacío. El programa se cerrara\n";
+            return 0;
+        }
+        entrada.seekg(0, ios::beg);
+
+
         cout<<"Ingrese la capacidad de la memoria cache en bytes\n";
         //Memoria cache recibida en bytes
         if(!(cin>>capacidadCache)){
@@ -168,6 +254,8 @@ int main(){
             return 0;
         }
 
+        cout<<"Ingrese 1 si desea utilizar prefetching, caso contrario ingrese cualquier otro numero\n";
+        cin>>prefecSelec;
 
         // Asignar memoria para el numero total de conjuntos
         memCache = new Cache*[numBloques];
@@ -186,9 +274,7 @@ int main(){
 
         etiqueta=direccion-bloque-desplazamiento;    //Se calcula el numero total de bits para el espacio de la etiqueta
 
-        cacheTamanoReal=(numBloques*(128+etiqueta+1))/8;
         cout<<"El tamaño de la direccion es: "<<direccion<<" bits"<<endl;
-        cout<<"El tamaño real de la cache es: "<<cacheTamanoReal<<" bytes"<<endl;
         cout<<"El total de conjuntos de la cache es: "<<numBloques<<endl;
         cout<<"El total de vias del conjunto es: "<<conjunto<<endl;
         cout<<"El total de bits para la etiqueta es: "<<etiqueta<<endl;
@@ -199,7 +285,7 @@ int main(){
         i=0;//Contador de accesos
         while(entrada>> hex >> direccion){
             //prefetching de salto Se toma en consideracion que el programa aprovechara saltos de 1 palabra para acceder a arreglos/matrices
-            prefetchingSalto =  4 + direccion;//aprovechando asi la localidad espacial
+            prefetchingSalto =  20 + direccion;//aprovechando asi la localidad espacial
             i++;
             salida<< dec << i<<endl;
             salida<<"Direccion leida 0x"<< hex << direccion<<endl;
@@ -217,7 +303,7 @@ int main(){
             do{
                 //Verifica el estado del bit de validez
                 if(memCache[bitsBloque][contadorConjunto].getEsValido()==1){
-                    //Se verifica si la etiqueta concuerda
+                    //Se verifica si la etiqueta concuealeatorioa
                     if(bitsEtiqueta==memCache[bitsBloque][contadorConjunto].getEtiqueta()){
                         memCache[bitsBloque][contadorConjunto].setDatos(direccion);//Se muestra en datos la direccion actual
                         bandera=true;//Como la etiqueta fue igual, a la buscada es un acierto
@@ -234,7 +320,7 @@ int main(){
             contadorConjunto=0;
 
             //Si era falso, pero la direccion que se trata de acceder ya esta en el buffer, entonces sera true
-            if (!bandera && (bitsBloqueBuffer==bitsBloque)&&(bitsEtiquetaBuffer==bitsEtiqueta)){
+            if (!bandera && (bitsBloqueBuffer==bitsBloque)&&(bitsEtiquetaBuffer==bitsEtiqueta) && (prefecSelec==1)){
                 banderaBuffer = true;
                 //No obstante, debera entrar a insertar el nuevo dato del buffer a la memoria cache, es por ello que la variable "bandera" sigue en falso
                 
@@ -341,7 +427,7 @@ int main(){
 
             contadorConjunto=0;
             if(bloque!=0){//Si no es completamente asociativa imprime "Indice"
-                salida<<"Índice"<<espaciar(6,10);
+                 salida<<"Índice"<<espaciar(6,10);
             }
             for(j=0;j<conjunto;j++){
             salida<<"V"<<espaciar(1,5)<<"Etiqueta"<<espaciar(8,32)<<"Datos"<<espaciar(5,40);
@@ -374,10 +460,17 @@ int main(){
 
             bitsEtiquetaBuffer = prefetchingSalto >> (bloque+desplazamiento); 
 
+
+            //Imprime para generar .csv
+            frecuenciaNumerador = (float)(contadorAciertos);
+            frecuenciaDenominador = (float)(i);
+            csv.precision(2);
+
+            csv<<(frecuenciaNumerador/ frecuenciaDenominador)*100<<",";
+            csv<<i<<endl;
         }
         
-        frecuenciaNumerador = (float)(contadorAciertos);
-        frecuenciaDenominador = (float)(i);
+
         salida.precision(2);
         salida<<"Frecuencia de aciertos: "<<(frecuenciaNumerador/ frecuenciaDenominador)*100<<"%"<<endl;
         salida<<"Frecuencia de fallos: "<<(1-(frecuenciaNumerador/frecuenciaDenominador))*100<<"%"<<endl;
@@ -386,9 +479,11 @@ int main(){
         cout<<"Frecuencia de fallos: "<<(1-(frecuenciaNumerador/frecuenciaDenominador))*100<<"%"<<endl;
         cout<<"\nEl archivo de salida se ha creado con exito."<<endl;
 
-        entrada.close();
-        salida.close();
-    }
+
+
+
+
+    
     //V30.077.008 - V28.505.513
     //José López  - Edgar Gutiérrez
     return 0;
