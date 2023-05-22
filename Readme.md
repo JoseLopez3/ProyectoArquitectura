@@ -34,6 +34,5 @@ el número de palabras por bloque. Finalmente, el programa le dará la posibilid
 
 - El programa solo trabaja con direcciones de 32 bits.  
 - Las palabras solo serán de 4 bytes.  
-- Las direcciones que se desean ingresar al simulador, deberán ser colocadas en el archivo *"entrada.in"*, dichas direcciones deberán ser escritas de manera hexadecimal.  
-- El resto de datos a ingresar, como lo es la capacidad total de la caché, su tipo de correspondencia, al igual que el número de palabras por bloques, serán ingresadas por teclado.
+- Los datos a ingresar, como lo es la capacidad total de la caché, su tipo de correspondencia, al igual que el número de palabras por bloques, serán ingresadas por teclado.
 
