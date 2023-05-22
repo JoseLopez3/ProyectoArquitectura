@@ -27,9 +27,8 @@ make
 ./cache.out
 ```
 
-Una vez ejecutado el programa, se le pedirá ingresar cuanta capacidad de almacenamiento tiene la memoria caché. Lo cual dará lugar a un menú con 3 opciones, las cuales serán el tipo de correspondencia
-que se desea utilizar, si la opción elegida fue asociativa por conjuntos el programa le solicitará el número de palabras por bloque y ¿cuantas vías tendrá el conjunto? . Caso contrario, solo le pedirá
-el número de palabras por bloque. Tras haber ingresado todos los datos podrá ver por la terminal las características de la memoria caché, así como también la representación gráfica de la memoria caché en el archivo *salida.out*.
+Una vez ejecutado el programa, se le pedirá ingresar 1 o cualquier otro número según la opción que desee tomar para las primeras 2 preguntas, las cuales hacen referencia para generar un archivo genérico de lectura de direcciones. Así como también, la capacidad de imprimir un archivo salida.out que tendrá la representación gráfica de la memoria caché. Tras haber ingresado con éxito estos datos, se refleja un menú al cual el usuario podrá seleccionar que archivo desea utilizar. Una vez seleccionado se le pedirá cuanta capacidad de almacenamiento tendrá la memoria caché. Lo cual dará lugar nuevamente a un menú con 3 opciones, las cuales serán el tipo de correspondencia que se desea utilizar, si la opción elegida fue asociativa por conjuntos el programa le solicitará el número de palabras por bloque y ¿cuantas vías tendrá el conjunto? . Caso contrario, solo le pedirá
+el número de palabras por bloque. Finalmente, el programa le dará la posibilidad de usar el prefetching en la memoria caché si lo desea. Después de haber ingresado todos los datos podrá ver por la terminal las características de la memoria caché, así como también la representación gráfica de la memoria caché en el archivo *salida.out* siempre y cuando se le haya solicitado al programa crear dicho archivo.
 
 # Información a tener en cuenta
 

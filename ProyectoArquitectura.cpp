@@ -116,7 +116,7 @@ void generate_random_direcciones(uint32_t minimo, uint32_t maximo, double probab
 
 
 int main(){
-    int capacidadCache, numPalabras,numBloques, desplazamiento, bloque, etiqueta, conjunto,contadorConjunto=0,creacionArchivo;
+    int capacidadCache, numPalabras,numBloques, desplazamiento, bloque, etiqueta, conjunto,contadorConjunto=0,creacionArchivo,imprimir;
     int bitsDesplazamiento, bitsBloque, bitsEtiqueta,j,k,i,maximo=-1,ultimo=9999,posUltimoAccedido,tipo,contadorAciertos=0,remplazamiento;
     int bitsBloqueBuffer=-1,bitsEtiquetaBuffer=-1,bitsDesplazamientoBuffer=-1,prefecSelec;//se inicializan a -1, para evitar que entren la primera vez
     long direccion,prefetchingSalto;
@@ -131,8 +131,7 @@ int main(){
     
 
 
-
-
+        //Primera linea archivo csv
         csv<<"FrecuenciaDeaciertos,NumeroDeAccesos\n";
 
         direccion=32;   //Cantidad de bits que tiene la direccion
@@ -147,6 +146,13 @@ int main(){
         if(creacionArchivo==1){
                         //como parametros de entrada tiene la cantidad permitida de direcciones, asi como tambien el porcentaje respectivo a la localidad temporal y espacial
                         generate_random_direcciones(0, 0xFFFFFFFF, 0.6, 0.6);
+        }
+
+        cout<<"¿Desea imprimir un archivo representando los accesos de la memoria cache?\n";
+        cout<<"Ingrese 1 para imprimirlo, caso contrario ingrese cualquier otro numero\n";        
+        if(!(cin>>imprimir)){
+            cout<<"Ha ingresado un valor incorrecto, el valor a ingresar debe ser un numero. A continuacion el programa se cerrara.\n";
+            return 0;
         }
 
         //Seleccion archivo
@@ -183,7 +189,6 @@ int main(){
             return 0;
         }
         entrada.seekg(0, ios::beg);
-
 
         cout<<"Ingrese la capacidad de la memoria cache en bytes\n";
         //Memoria cache recibida en bytes
@@ -287,8 +292,6 @@ int main(){
             //prefetching de salto Se toma en consideracion que el programa aprovechara saltos de 1 palabra para acceder a arreglos/matrices
             prefetchingSalto =  20 + direccion;//aprovechando asi la localidad espacial
             i++;
-            salida<< dec << i<<endl;
-            salida<<"Direccion leida 0x"<< hex << direccion<<endl;
             bandera=false;
             banderaBuffer=false;
     
@@ -351,7 +354,6 @@ int main(){
                 memCache[bitsBloque][posUltimoAccedido].setLFU(memCache[bitsBloque][posUltimoAccedido].getLFU()+1);        
             
             }
-        
             if( (!bandera) && (remplazamiento==2)){//Hubo un fallo asique hay que agregar el nuevo dato
                 do{
                     //LRU, se busca cual es el menos usado
@@ -376,7 +378,6 @@ int main(){
                 do{//Busca el valor mas alto para asi asignar el futuro LRU con el "valor mas alto + 1"
                     if(maximo<memCache[bitsBloque][contadorConjunto].getLRU()){
                         maximo = memCache[bitsBloque][contadorConjunto].getLRU();
-                        posUltimoAccedido = contadorConjunto;
                     }
 
                 
@@ -415,43 +416,51 @@ int main(){
 
 
             }
-            //Procede a imprimir todo
 
             if(bandera || banderaBuffer){
                 contadorAciertos++;
-                salida<<"Acierto"<<endl;
             }
-            else{
-                salida<<"Fallo"<<endl;
-            }
-
             contadorConjunto=0;
-            if(bloque!=0){//Si no es completamente asociativa imprime "Indice"
-                 salida<<"Índice"<<espaciar(6,10);
-            }
-            for(j=0;j<conjunto;j++){
-            salida<<"V"<<espaciar(1,5)<<"Etiqueta"<<espaciar(8,32)<<"Datos"<<espaciar(5,40);
-            }
-            salida<<endl;
-            
-            for(j=0;j<numBloques;j++){
-                aux=(j);
-                //Indice
-                if(bloque!=0){//Si no es completamente asociativa imprime el valor del indice
-                    salida<<aux.to_string().substr(32 - bloque)<<espaciar(bloque,10);
+
+            //Procede a imprimir si el usuario decidio que generara un archivo representando la cache
+            if(imprimir==1){
+                salida<< dec << i<<endl;
+                salida<<"Direccion leida 0x"<< hex << direccion<<endl;
+
+                if (bandera || banderaBuffer){
+                    salida<<"Acierto"<<endl;
                 }
-                for(k=conjunto-1;k>=0;k--){
-                    //bit validez
-                    salida<<memCache[j][k].getEsValido();
-                    //Imprime la etiqueta y los datos
-                    aux=memCache[j][k].getEtiqueta();
-                    salida<<espaciar(1,5)<<aux.to_string().substr(32 - etiqueta);
-                    aux=memCache[j][k].getDatos();
-                    salida<<espaciar(etiqueta,32)<<aux<<espaciar(32,40);
+                else{
+                    salida<<"Fallo"<<endl;
+                }
+
+                if(bloque!=0){//Si no es completamente asociativa imprime "Indice"
+                    salida<<"Índice"<<espaciar(6,10);
+                }
+                for(j=0;j<conjunto;j++){
+                salida<<"V"<<espaciar(1,5)<<"Etiqueta"<<espaciar(8,32)<<"Datos"<<espaciar(5,40);
+                }
+                salida<<endl;
+                
+                for(j=0;j<numBloques;j++){
+                    aux=(j);
+                    //Indice
+                    if(bloque!=0){//Si no es completamente asociativa imprime el valor del indice
+                        salida<<aux.to_string().substr(32 - bloque)<<espaciar(bloque,10);
+                    }
+                    for(k=conjunto-1;k>=0;k--){
+                        //bit validez
+                        salida<<memCache[j][k].getEsValido();
+                        //Imprime la etiqueta y los datos
+                        aux=memCache[j][k].getEtiqueta();
+                        salida<<espaciar(1,5)<<aux.to_string().substr(32 - etiqueta);
+                        aux=memCache[j][k].getDatos();
+                        salida<<espaciar(etiqueta,32)<<aux<<espaciar(32,40);
+                    }
+                    salida<<"\n";
                 }
                 salida<<"\n";
             }
-            salida<<"\n";
             //Finalmente se prepara el prefetching de buffer para la siguiente llamada, almacenandole asi cada uno de sus respectivos datos de la direccion pronosticada
             bitsDesplazamientoBuffer= prefetchingSalto & ((1 << desplazamiento) - 1);  
 
@@ -470,17 +479,19 @@ int main(){
             csv<<i<<endl;
         }
         
-
-        salida.precision(2);
-        salida<<"Frecuencia de aciertos: "<<(frecuenciaNumerador/ frecuenciaDenominador)*100<<"%"<<endl;
-        salida<<"Frecuencia de fallos: "<<(1-(frecuenciaNumerador/frecuenciaDenominador))*100<<"%"<<endl;
+        if(imprimir==1){
+            salida.precision(2);
+            salida<<"Frecuencia de aciertos: "<<(frecuenciaNumerador/ frecuenciaDenominador)*100<<"%"<<endl;
+            salida<<"Frecuencia de fallos: "<<(1-(frecuenciaNumerador/frecuenciaDenominador))*100<<"%"<<endl;
+        }
 
         cout<<"\nFrecuencia de aciertos: "<<(frecuenciaNumerador/ frecuenciaDenominador)*100<<"%"<<endl;
         cout<<"Frecuencia de fallos: "<<(1-(frecuenciaNumerador/frecuenciaDenominador))*100<<"%"<<endl;
         cout<<"\nEl archivo de salida se ha creado con exito."<<endl;
 
 
-
+        salida.close();
+        csv.close();
 
 
     
