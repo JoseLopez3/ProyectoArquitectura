@@ -20,10 +20,18 @@ En este proyecto se busca simular su funcionamiento, mediante la introducción d
 
 # Ejecución del programa
 
-Para ejecutar el programa, primero se deberá escribir los siguientes comandos:
+Para ejecutar el programa, puede escribir los siguientes comandos:
 
-```  
+Para compilar puede hacer uso de
+``` 
 make 
+```
+o 
+```
+g++ -std=c++11 ProyectoArquitectura.cpp -o cache.out
+```
+Y para ejecutar
+```
 ./cache.out
 ```
 
